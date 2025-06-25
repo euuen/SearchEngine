@@ -3,7 +3,7 @@
     "model": "./bge-small-zh-v1.5",
     "result_num": 5,
     "paths": [
-        "/run/media/euuen/绥宁一中539班/PKM/"
+        "/run/media/euuen/dir/PKM/"
     ],
     "endswith":[
         ".md"
