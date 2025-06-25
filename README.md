@@ -1,3 +1,37 @@
+# 环境准备
+本代码用到了chromadb、sentence_tranformer库，python版本1.11，文本嵌入模型bge-small-zh-v1.5
+
+文本嵌套模型用这段python代码下载比较快在国区。
+
+```python
+# -*- coding:utf-8 -*-
+# @Author: 喵酱
+# @time: 2025 - 04 -05
+# @File: miao_test.py
+# desc:
+import os
+
+os.environ["HF_ENDPOINT"] = "https://hf-mirror.com"
+from transformers import AutoModel, AutoTokenizer
+from sentence_transformers import SentenceTransformer
+
+model_name = "BAAI/_bge-small-zh-v1.5"
+tokenizer = AutoTokenizer.from_pretrained(model_name)
+model = AutoModel.from_pretrained(model_name)
+
+# 保存模型到本地目录（例如 ./_bge-small-zh-v1.5）
+save_path = "./_bge-small-zh-v1.5"
+model.save_pretrained(save_path)
+tokenizer.save_pretrained(save_path)
+
+model = SentenceTransformer("./_bge-small-zh-v1.5")
+model.save("./bge-small-zh-v1.5")
+
+if __name__ == '__main__':
+    print(f"模型已保存到 ./bge-small-zh-v1.5")
+
+```
+
 # 如何使用？
 
 请打开`engine.config.json`文件，然后修改`paths`，此参数用于指定要读取的哪些文件夹里的文件（支持递归），如
