@@ -1,7 +1,9 @@
 import json
 import os
+
 import chromadb
 from sentence_transformers import SentenceTransformer
+from transformers import AutoTokenizer, BertTokenizerFast
 
 # 改变工作路径
 os.chdir(os.path.dirname(os.path.abspath(__file__)))
@@ -11,6 +13,8 @@ class SearchEngine:
     collection: chromadb.Collection
     collection_name: str = "default"
     model: SentenceTransformer
+    # 注意注意，这个类型不一定是Bert
+    tokenizer: BertTokenizerFast
     result_num: int
     paths: list
     endswith: list
@@ -25,6 +29,8 @@ class SearchEngine:
             self.collection = self.client.get_or_create_collection(name="default")
 
             self.model = SentenceTransformer(config["model"])
+
+            self.tokenizer = AutoTokenizer.from_pretrained(config["model"])
 
             self.result_num = config["result_num"]
 
@@ -121,35 +127,32 @@ class SearchEngine:
 
     def add(self, file_path: str):
         with open(file_path) as file:
-            line_num = 0
+            content = file.read().strip()
+            tokens = self.tokenizer.tokenize(content, verbose=False)
 
-            lines = []
-            lines_index = []
+            i = 0
+            j = 512 if len(tokens) >= 512 else len(tokens)
+            texts = []
 
-            for line in file:
-                line_num += 1
+            while True:
+                texts.append(''.join(tokens[i:j]))
 
-                if len(line) > 512:
-                    continue
+                i += 256
+                j += 256
 
-                if line.isspace():
-                    continue
+                if j > len(tokens):
+                    j = len(tokens)
 
-                lines_index.append(line_num)
-                lines.append(line)
+                if i > len(tokens):
+                    break
 
-            embeddings = self.model.encode(lines,
-                                           normalize_embeddings=True,
-                                           convert_to_tensor=False)
+            embeddings = self.model.encode(texts, normalize_embeddings=True, convert_to_tensor=False)
 
-            if len(lines) == 0:
-                return
-            else:
-                self.collection.add(
-                    ids = [f"{file_path}+{i}" for i in lines_index],
-                    documents = lines,
-                    embeddings = embeddings
-                )
+            self.collection.add(
+                ids = [file_path],
+                embeddings = embeddings.mean(axis=0).reshape(1, 512),
+                documents = [content]
+            )
 
     def query(self, query_text: str):
         query_embeddings = self.model.encode(query_text,
